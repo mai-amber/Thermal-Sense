@@ -196,33 +196,53 @@ Builds the stereo audio buffer (sonic “heatmap”) and saves images/audio file
 
 ###  Thermal-to-Auditory Mapping Algorithm
 
-Once we have a cleaned, normalized thermal image, we need to turn its 2D temperature data into a 1D sequence of sounds. ThermalSense does this in two main steps:
+After cleaning and normalizing the thermal image, ThermalSense transforms the 2D temperature data into a 1D sequence of sounds using a musical, information-rich approach.
 
-** Spatial → Temporal & Pitch Encoding
+**Spatial Encoding: Image → Sound**
+*Horizontal (X) → Time & Stereo*
 
-*Horizontal → Time
-We “scan” the image left-to-right, one column at a time. If a full sweep is 3 s and there are 32 columns, each column gets ~0.094 s of audio.
+The system scans the image left-to-right, column by column.
 
-*Vertical → Pitch
-Within each column, a pixel’s row (top → bottom) maps to a musical pitch: top rows become higher notes, bottom rows lower notes. We compute a raw frequency and then snap it to the nearest note in a pentatonic scale so every chord stays harmonious.
+Each column is assigned a short time slot in the final sound (for example, a 32-column image over 3 seconds gives ~0.094s per column).
 
-**Temperature → Volume & Timbre
+To add spatial cues, sound from left columns is played more in the left speaker, and right columns more in the right—helping listeners locate features horizontally.
 
-*Volume scales with how hot (or cold) the pixel is—hotter = louder, cooler = softer.
+*Vertical (Y) → Pitch (Note)*
 
-*Timbre defaults to two instrument voices:
+Within each column, the row (vertical position) determines the musical pitch:
 
-Brass-like for “warm”/“hot” ranges (rich, harmonic waveform)
+Top rows map to higher notes, bottom rows to lower notes.
 
-Reed-like for “cool” ranges (pure sine with light vibrato)
+But instead of using any possible frequency, ThermalSense “quantizes” each calculated pitch to the nearest note in a pentatonic scale.
 
-*In Custom Mode, you supply your own frequency for each named temperature band—so you could even make “warm” pixels always play at 880 Hz, regardless of row.
+The pentatonic scale (built from fixed frequency ratios over four octaves, starting at A3 = 220 Hz) contains only notes that sound harmonious together.
 
-**Chord Assembly & Stereo Panning
+This “snapping” ensures all simultaneous notes make pleasant, musical chords—no matter how many spots are active at once.
 
-If multiple pixels in one column fall into active ranges, we play all their notes simultaneously (a chord).
+**Why Pentatonic Quantization?**
+The pentatonic scale avoids musical clashes (“dissonance”) by leaving out half-step intervals (minor seconds, tritones).
 
-We pan each column’s chord slightly left or right in stereo—early columns favor the left speaker, later columns the right—giving an extra spatial cue.
+Even when multiple notes play together (e.g., several hot/cold spots in a column), they combine into pleasant harmonies—not a jumble.
+
+This is key for usability and comfort in long-term or real-time use.
+
+**Temperature → Volume & Timbre**
+Volume: The hotter (or colder) the pixel, the louder its note in the output sound.
+
+Timbre (Instrument Sound):
+
+Hot or warm regions: “Brass-like” (rich, harmonically complex sound)
+
+Cold regions: “Reed-like” (clean sine wave with gentle vibrato)
+
+Neutral: Can be silent or use a different tone if desired.
+
+Custom Mode: You can override this mapping and assign any base frequency to each temperature range.
+
+Chord Assembly
+For every column, all active notes (from pixels in hot/cold ranges) are played at the same time—a musical chord.
+
+Because all notes are from the pentatonic scale, every chord is pleasant and easy to interpret.
 
 
 
@@ -285,9 +305,7 @@ Sine Wave Synthesis:
 Each “note” (sound event) is produced as a simple sine wave, calculated by the formula:
 sample_value = volume × sin(2π × frequency × time)
 
-Sine waves are clear and easy to recognize, but may sound “artificial.”
 
-For richer sound, real instrument samples or more complex waveforms can be used.
 
 Envelope (Fade In/Out):
 To avoid harsh clicks at the start or end of a sound, each note fades in and out over a few milliseconds. This smooths the sound and prevents audio artifacts.
