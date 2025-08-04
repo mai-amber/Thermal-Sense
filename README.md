@@ -42,7 +42,7 @@ ThermalSense is built with modularity in mind. It separates sensor input, proces
 
 ## Introduction
 
-**ThermalSense ** enables human perception of invisible heat patterns by translating thermal images into rich auditory cues.  
+**ThermalSense** enables human perception of invisible heat patterns by translating thermal images into rich auditory cues.  
 Inspired by landmark systems like *The vOICe* and *EyeMusic*, which encode visual features as sound, **ThermalSense** targets the infrared domain: it captures input from a thermal sensor and generates a structured soundscape representing the temperature distribution in a scene.
  Building on these ideas, ThermalSense specifically targets the infrared thermal spectrum: it takes input from a thermal sensor (infrared camera) and generates an auditory "thermal soundscape" that represents the temperature distribution of a scene.
 Unlike traditional visual cameras, a thermal sensor captures the heat radiation of objects, revealing hot and cold areas that are otherwise invisible to the naked eye. ThermalSense processes this thermal data and maps it to sound in real-time. By listening to the output, users can localize and recognize thermal properties of objects or environments, effectively gaining a new sense for temperature differences.
