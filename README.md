@@ -301,6 +301,7 @@ Standard Rate: We use 44.1 kHz (CD quality) for clear, smooth sound.
 Sample Depth: Each sample is 16-bit or 24-bit for good dynamic range.
 
  2. Creating Tones
+This part describes how a musical note is generated mathematically, before it becomes digital samples.
 Sine Wave Synthesis:
 Each “note” (sound event) is produced as a simple sine wave, calculated by the formula:
 sample_value = volume × sin(2π × frequency × time)
