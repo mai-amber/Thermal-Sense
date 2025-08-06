@@ -294,7 +294,7 @@ The Audio Output module is where abstract note events—each with a specific pit
 
  1. Digital Sound Basics
 Sampling Rate & Format:
-The system generates digital audio by sending a rapid stream of amplitude values (samples) to a digital-to-analog converter (DAC) or your computer’s sound card.
+The system generates digital audio by sending a rapid stream of amplitude values (samples) to a digital-to-analog converter (DAC) or the computer’s sound card.
 
 Standard Rate: We use 44.1 kHz (CD quality) for clear, smooth sound.
 
@@ -304,8 +304,6 @@ Sample Depth: Each sample is 16-bit or 24-bit for good dynamic range.
 Sine Wave Synthesis:
 Each “note” (sound event) is produced as a simple sine wave, calculated by the formula:
 sample_value = volume × sin(2π × frequency × time)
-
-
 
 Envelope (Fade In/Out):
 To avoid harsh clicks at the start or end of a sound, each note fades in and out over a few milliseconds. This smooths the sound and prevents audio artifacts.
@@ -357,7 +355,7 @@ One buffer is played while the next is prepared (double-buffering) to keep every
   - `stop()`: Graceful shutdown, resource cleanup.
   - `play_audio()`, `log_results()`: Audio playback and data logging.
 
-### `ThermalSenseInput` (`ThermalSensor`)
+### `ThermalSenseInput` 
 - **Hardware interface for the thermal sensor** (MLX90640).
 - **Key Methods:**  
   - `__init__()`: Open sensor.
