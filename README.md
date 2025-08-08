@@ -1,635 +1,255 @@
-ThermalSense  – Real-Time Thermal-to-Audio Perception System
 
+# ThermalSense – Real-Time Thermal-to-Audio Perception System
 
+**ThermalSense** is a sensory substitution system designed to translate thermal camera data into sound, enabling users to "hear" temperature differences in their surroundings. This system is particularly useful for the visually impaired, educational purposes, or research applications in human-computer interaction.
 
-ThermalSense is a project designed to translate thermal camera data into sound. By doing this, it enables users to "hear" temperature differences in their surroundings, offering a new way to sense the world—through sound.
+The system works by mapping the temperature values captured by infrared sensors (like the MLX90640) to audio cues, providing real-time auditory feedback. Hotter regions correspond to higher-pitched sounds, while cooler areas are represented with lower tones.
 
+This README serves as a comprehensive guide to the **ThermalSense Core System**, detailing the system's architecture, algorithms, and implementation steps based on the principles outlined in the related paper **"ThermalSense: A Sensory Substitution System for Enabling Perception of Thermal Information"** (link to paper).
 
-
-The idea behind ThermalSense is to provide real-time auditory feedback that reflects thermal information captured by infrared cameras. For example, hotter regions produce higher-pitched sounds, and cooler ones are represented with lower tones. This sensory substitution system can be especially helpful in assistive technologies for visually impaired users, in education for teaching about thermal imaging and perception, or in research and experimentation with human-computer interaction systems.
-
-
-
-The system works by continuously capturing data from a thermal sensor (like the MLX90640), processing it, and mapping temperature values to audio cues. The sound updates in real-time, offering immediate spatial and thermal feedback. Depending on the configuration, users can hear different tone schemes, adjust the temperature range for detection, save audio logs, and even snapshot thermal images as CSV or PNG files. The sound can also pan left to right to help locate the source of heat across a scene.
-
-
-
-ThermalSense is built with modularity in mind. It separates sensor input, processing logic, and audio output into distinct components, making it easy to add support for new sensors or experiment with different auditory mappings.
+---
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [System Architecture & OOP Model](#system-architecture--oop-model)
-  - [Class Structure](#class-structure)
-  - [Data Flow](#data-flow)
-- [Algorithm Overview](#algorithm-overview)
-  - [Data Acquisition and Preprocessing](#data-acquisition-and-preprocessing)
-  - [Thermal-to-Auditory Mapping Algorithm](#thermal-to-auditory-mapping-algorithm)
-  - [Step-by-Step Operation](#step-by-step-operation)
-- [Signal Generation](#signal-generation)
-  - [Frequency-to-Tone Mapping](#frequency-to-tone-mapping)
-  - [Audio Output Implementation](#audio-output-implementation)
-- [Class-by-Class Code Walkthrough](#class-by-class-code-walkthrough)
-- [Flow of Execution](#flow-of-execution)
-- [ThermalSense GUI: Features & Modes](#thermalsense-gui-features--modes)
-- [Installation Guide](#installation-guide)
-- [Running the System](#running-the-system)
-- [Key Features](#key-features)
-- [Use Cases](#use-cases)
-- [Project Structure](#project-structure)
+* [Introduction](#introduction)
+* [System Architecture](#system-architecture)
+
+  * [Class Structure](#class-structure)
+  * [Data Flow](#data-flow)
+* [Algorithm Overview](#algorithm-overview)
+
+  * [Thermal-to-Auditory Mapping](#thermal-to-auditory-mapping)
+  * [Signal Generation](#signal-generation)
+* [Installation Guide](#installation-guide)
+* [Running the System](#running-the-system)
+* [Key Features](#key-features)
+* [Use Cases](#use-cases)
+* [Project Structure](#project-structure)
 
 ---
 
 ## Introduction
 
-**ThermalSense** enables human perception of invisible heat patterns by translating thermal images into rich auditory cues.  
-Inspired by landmark systems like *The vOICe* and *EyeMusic*, which encode visual features as sound, **ThermalSense** targets the infrared domain: it captures input from a thermal sensor and generates a structured soundscape representing the temperature distribution in a scene.
- Building on these ideas, ThermalSense specifically targets the infrared thermal spectrum: it takes input from a thermal sensor (infrared camera) and generates an auditory "thermal soundscape" that represents the temperature distribution of a scene.
-Unlike traditional visual cameras, a thermal sensor captures the heat radiation of objects, revealing hot and cold areas that are otherwise invisible to the naked eye. ThermalSense processes this thermal data and maps it to sound in real-time. By listening to the output, users can localize and recognize thermal properties of objects or environments, effectively gaining a new sense for temperature differences.
-An initial proof-of-concept study of the system showed that users could achieve high accuracy in identifying and localizing thermal features with only a short training period , indicating the practicality of the approach. 
-This README  serves as a comprehensive technical guide to the ThermalSense Core system, detailing its design considerations, algorithmic implementation, object-oriented software architecture, and the step-by-step operation of the conversion from thermal data to audio signals. All aspects of the system—from signal generation and frequency-to-tone mapping, to the modular class structure of the code—are explained in depth to provide a clear understanding of how ThermalSense functions and how
-it was engineered.
+**ThermalSense** extends human sensory capabilities by converting thermal information into auditory cues. Inspired by visual-to-auditory systems like *EyeMusic*, it leverages the *EyeMusic* algorithm to create soundscapes from thermal data. Users can perceive temperature variations and localize heat sources through sound.
 
+This system has applications in:
+
+* **Assistive Technology**: Enabling visually impaired users to "hear" heat sources.
+* **Education**: Teaching about thermal imaging and perception.
+* **Research**: Exploring human-computer interaction and multisensory integration.
 
 ---
 
-## System Architecture & OOP Model
+## System Architecture
 
-The ThermalSense Core system is organized into distinct components that work together to capture thermal data and produce corresponding audio output. The design follows a modular object-oriented programming (OOP) model to ensure clarity, maintainability, and extensibility of the code.
+The system is composed of four main classes, each handling a distinct part of the process:
 
-ThermalSense Core is implemented with four main classes:
-
-ThermalSenseGUI: Main GUI. Collects user parameters and launches/stops processing.
-
-ThermalSenseRunner: Orchestrator that manages data acquisition, processing, audio output, and logging.
-
-ThermalSenseInput: Interface to the MLX90640 thermal camera; provides raw data frames and live visualization support.
-
-ThermalSense: Core logic for thermal data cleaning, color mapping, soundscape synthesis, and saving results.
-
-All major functionalities are encapsulated in these classes.
+* **ThermalSenseGUI**: The main user interface for setting parameters and controlling the system.
+* **ThermalSenseRunner**: The orchestrator, managing data acquisition, processing, and output.
+* **ThermalSenseInput**: The interface for reading data from the MLX90640 thermal camera.
+* **ThermalSense**: The core class for processing thermal images, generating the audio output, and saving results.
 
 ### Class Structure
 
--ThermalSenseGUI
+* **ThermalSenseGUI**:
 
-Responsible for GUI building, collecting user input (mode, custom ranges), and running/stopping the pipeline.
+  * Responsible for displaying the GUI, gathering user input (e.g., custom temperature ranges), and starting or stopping the system.
 
-Launches a background thread running a ThermalSenseRunner.
+* **ThermalSenseRunner**:
 
--ThermalSenseRunner
+  * Coordinates real-time cycles of acquiring, processing, and outputting thermal data. It interacts with both `ThermalSenseInput` and `ThermalSense`.
 
-Coordinates real-time cycles.
+* **ThermalSenseInput**:
 
-Owns a ThermalSenseInput (hardware interface) and a ThermalSense (core processing and mapping).
+  * Handles the I²C connection with the MLX90640 sensor, reading temperature data in real-time.
 
-Handles image acquisition, passes frames to ThermalSense.process_image, manages sound playback and file logging.
+* **ThermalSense**:
 
--ThermalSenseInput
-
-Handles I2C connection and real-time reading from the MLX90640 sensor via .mlx.getFrame.
-
-Provides helper methods for live plot updates.
-
--ThermalSense
-
-Provides all thermal image processing (resizing, cleaning, colorization), temperature-to-color mapping, and the core soundscape generation.
-
-Contains all logic for default and custom mapping modes.
-
----
-Inter-class relationships:
-
-ThermalSenseGUI → ThermalSenseRunner
-The GUI is purely a control layer: it collects the settings (mode, ranges, logging options) and, when you hit Run, it launches a ThermalSenseRunner in the background. It never deals with sensor hardware or sound generation itself.
-
-ThermalSenseRunner → ThermalSenseInput & ThermalSense
-The Runner is the orchestrator. In a tight loop it:
-Grabs frames from the camera via ThermalSenseInput
-
-Hands each frame to ThermalSense for cleaning, color‐mapping, and sonification
-
-Plays back the generated audio, updates the GUI plot, and writes logs/files
-
-ThermalSenseInput
-Responsibility: Only sensor I/O.
-It opens the I²C connection to the MLX90640, reads each 24×32 thermal frame into a NumPy array, handles retries on errors, and returns clean raw data—nothing more.
-
-ThermalSense
-Responsibility: All data transformations.
-Given a raw temperature array, it:
-
-Cleans and inpaints non-thermal artifacts
-
-Normalizes and colorizes pixels into a heatmap
-
-Maps pixel positions and temperature bands (default or custom) to musical pitches and timbres
-
-Builds the stereo audio buffer (sonic “heatmap”) and saves images/audio files
-
-##  Data Flow 
-
-**A single real-time frame processing cycle involves:**
-
-1. **ThermalSenseInput – Frame Acquisition**
-
-   * The method ThermalSenseInput.__init__() establishes the I2C connection with the MLX90640 thermal camera (self.i2c = busio.I2C(board.SCL, board.SDA)), initializes the sensor object (self.mlx), and pre-allocates a 1D float32 array self.frame to hold the incoming data.
-   * Each time a new frame is needed, self.mlx.getFrame(self.frame) is called,  which fills that array with floating-point values (°C) for every pixel.
-  Returns a flat buffer—no processing yet.
-
-2. **ThermalSenseRunner – Frame Handling**
-
-   * ThermalSenseRunner.run() operates in a loop, pulling each new frame from the sensor by calling self.thermal_sensor.mlx.getFrame(frame), then reshaping it to a 2D numpy array (24 rows × 32 columns) for spatial processing ,where each entry corresponds to a specific row/column in the camera’s field of view.
-   * Loop Control This capture step runs inside a while running: loop so new frames are continually fetched at the configured sample rate.
-
-
-
-3. **ThermalSense – Processing and Mapping**
-
-   * The new frame (2D numpy array) is passed to ThermalSense.process_image(raw):
-
-     * Calls ThermalSense.image_acquisition to resize and/or validate the incoming image (guaranteeing a consistent format for downstream processing).
-     * Calls ThermalSense.remove_non_thermal to mask out and inpaint non-thermal artifacts, such as sensor reflections or environmental noise.
-     * Flips or rotates the frame so “up” in the thermal view matches “up” in the user’s perspective.
-     * generate_colored_thermal_image() colors each pixel according to its temperature range (hot/cold/neutral or custom ranges).
-     * create_soundscape() :
-       Divides the image into vertical slices (columns).
-       For each column, maps pixel heights to musical pitches (quantized to a pentatonic scale) and temperatures to timbres (brass for heat, reed for cold).
-       Builds a stereo audio buffer by mixing all tones, applying left-right panning based on column position, and normalizing to prevent clipping.
-    
-
-4. **ThermalSenseRunner – Output and Feedback**
-
-   * Receives the cleaned image and soundscape array.
-   * Saves files (PNG images, WAV audio) to the appropriate result directories if enabled.
-   * Logs statistics (mean temp, hot/cold column counts, etc.) to CSV.
-   * Triggers real-time playback (play_audio(wav_path)) and updates GUI overlays to indicate hot/cold/total counts per frame.
-   * The entire process loops at a rate set by the GUI/sample rate, providing near real-time feedback.
-
-5. **ThermalSenseGUI – User Control**
-
-   * Runtime adjustment - the user can Enable/Disable modes (Default vs. Custom), enable/disable logging or image saving, and start or stop the loop at any time.
-   * Clean Exit - When the user hit Stop or Exit, the GUI signals the runner to end its loop, waits for the thread to finish, closes any open files or hardware connections,     and returns control to the user .
+  * Processes the thermal data, cleans it, maps temperature ranges to sound, and generates audio cues.
 
 ---
 
-##  Algorithm Overview 
+## Data Flow
 
-###  Data Acquisition and Preprocessing
+### 1. **ThermalSenseInput – Frame Acquisition**
 
-* **Sensor Setup** (ThermalSenseInput.__init__):
+* Initializes I²C connection with the MLX90640 sensor.
+* Captures a thermal frame (768 values) representing temperature data.
 
-  * Direct hardware communication with MLX90640 sensor.
-  * Sets sensor refresh rate for a stable data flow (typically 2 Hz, but adjustable).
-  * Frame array pre-allocated and updated for each cycle.
+### 2. **ThermalSenseRunner – Frame Handling**
 
-* **Raw Data Extraction**:
+* Acquires each new thermal frame.
+* Reshapes the data for processing, updating the frame at a set sample rate.
 
-  * self.mlx.getFrame(self.frame) retrieves the latest sensor readings. Output is a 1D numpy array (float32, length 768).
-  * Data is reshaped to (24, 32) for 2D processing.
+### 3. **ThermalSense – Image Processing and Sound Generation**
 
-* **Preprocessing** (ThermalSense.process_image):
+* The frame is processed to clean non-thermal data.
+* A heatmap is generated, mapping temperature ranges to specific sound frequencies.
+* The audio cues are generated based on the vertical position (pitch) and temperature (volume/timbre).
 
-  * image_acquisition: Ensures correct size (50x30 default for image operations, though source is 24x32; resizing handled by OpenCV).
-  * remove_non_thermal: Uses inpainting via OpenCV to eliminate outliers/reflections—masking with threshold and dilating, followed by inpaint to fill invalid regions smoothly.
-  * Final cleaning may involve flipping or orientation corrections to match expected left/right/up/down spatial perception.
+### 4. **ThermalSenseRunner – Output and Feedback**
 
-###  Thermal-to-Auditory Mapping Algorithm
+* Saves images and audio files to a result directory.
+* Logs statistics (e.g., temperature, location of heat sources).
+* Plays back the generated soundscapes in real-time and updates the GUI.
 
-After cleaning and normalizing the thermal image, ThermalSense transforms the 2D temperature data into a 1D sequence of sounds using a musical, information-rich approach.
+### 5. **ThermalSenseGUI – User Control**
 
-**Spatial Encoding: Image → Sound**
-*Horizontal (X) → Time & Stereo*
-
-The system scans the image left-to-right, column by column.
-
-Each column is assigned a short time slot in the final sound (for example, a 32-column image over 3 seconds gives ~0.094s per column).
-
-To add spatial cues, sound from left columns is played more in the left speaker, and right columns more in the right—helping listeners locate features horizontally.
-
-*Vertical (Y) → Pitch (Note)*
-
-Within each column, the row (vertical position) determines the musical pitch:
-
-Top rows map to higher notes, bottom rows to lower notes.
-
-But instead of using any possible frequency, ThermalSense “quantizes” each calculated pitch to the nearest note in a pentatonic scale.
-
-The pentatonic scale (built from fixed frequency ratios over four octaves, starting at A3 = 220 Hz) contains only notes that sound harmonious together.
-
-This “snapping” ensures all simultaneous notes make pleasant, musical chords—no matter how many spots are active at once.
-
-**Why Pentatonic Quantization?**
-The pentatonic scale avoids musical clashes (“dissonance”) by leaving out half-step intervals (minor seconds, tritones).
-
-Even when multiple notes play together (e.g., several hot/cold spots in a column), they combine into pleasant harmonies—not a jumble.
-
-This is key for usability and comfort in long-term or real-time use.
-
-**Temperature → Volume & Timbre**
-Volume: The hotter (or colder) the pixel, the louder its note in the output sound.
-
-Timbre (Instrument Sound):
-
-Hot or warm regions: “Brass-like” (rich, harmonically complex sound)
-
-Cold regions: “Reed-like” (clean sine wave with gentle vibrato)
-
-Neutral: Can be silent or use a different tone if desired.
-
-Custom Mode: You can override this mapping and assign any base frequency to each temperature range.
-
-Chord Assembly
-For every column, all active notes (from pixels in hot/cold ranges) are played at the same time—a musical chord.
-
-Because all notes are from the pentatonic scale, every chord is pleasant and easy to interpret.
-
-
-
-###  Step-by-Step Operation 
-
-1. **Initialization**:
-
-   * User launches via GUI, sets up parameters (mode, ranges, logging, display).
-   * ThermalSenseRunner and sensor interface initialized.
-
-2. **Main Run Loop**:
-
-   * For each frame:
-
-     * Get raw frame from ThermalSenseInput.
-     * Clean/process with ThermalSense.process_image.
-     * Generate colored overlay and soundscape.
-     * Save results and log data if enabled.
-     * Play the soundscape immediately.
-     * Update GUI overlays with frame counts and stats.
-     * Delay based on sample rate (ensures smooth real-time performance).
-
-3. **User Control**:
-
-   * At any time, user can pause/stop/modify settings via the GUI, triggering safe termination or reinitialization of threads/resources.
+* The GUI allows the user to adjust settings such as mode (default or custom ranges), logging options, and visualization display.
+* Users can start, stop, or modify the operation at any time.
 
 ---
 
-##  Signal Generation 
-Signal generation is the bridge between “what notes to play” and “actual sound you hear.” Once the mapping algorithm has produced a list of timed notes (pitch + volume), ThermalSense must turn those into real audio waveforms. Here’s how that works under the hood—and what you’ll see documented in the code.
+## Algorithm Overview
 
-###  Frequency-to-Tone Mapping
-is the process of turning the vertical position in the thermal image into musical notes (pitches), so users can “hear” where heat or cold is located. The idea is inspired by how the EyeMusic and similar sensory substitution systems work.
+### Thermal-to-Auditory Mapping
 
-* **Pitch Calculation** (_pitch_from_y):
+* **Vertical Position** (Y-axis): Mapped to pitch, with higher positions (hotter regions) corresponding to higher notes.
+* **Horizontal Position** (X-axis): Determines the timing and stereo panning of the audio.
+* **Temperature Mapping**: Divides temperature ranges into categories (e.g., cold, neutral, hot) and maps them to specific instruments or sounds.
 
-  * Vertical position is mapped to a continuous frequency range, e.g., 300 Hz (bottom) to 1000 Hz (top), then **quantized**.
-  * _quantize matches the frequency to the closest value in a precomputed pentatonic scale table (ratios over several octaves from base A3).
-  * This guarantees that all simultaneous tones are musically consonant, avoiding dissonance even with multiple active regions.
+### Signal Generation
 
-* snapping to a pentatonic scale
-To keep every chord consonant, we snap each raw frequency to the nearest note in a precomputed table based on the pentatonic scale (ratios [1.0, 1.125, 1.25, 1.5, 1.875] over four octaves starting at A3 = 220 Hz).
-This “snapping” to pentatonic ensures all sounds fit well together, even if several are played at the same time.
-Why pentatonic?
-It eliminates half-step dissonances (no minor seconds or tritones), so even when multiple notes overlap you get a pleasant harmony rather than a clash.
-
-### Audio Output Implementation
-The Audio Output module is where abstract note events—each with a specific pitch and loudness—are turned into real sound that you can hear. Here’s how the system generates audio in a clear, step-by-step way:
-
- 1. Digital Sound Basics
-Sampling Rate & Format:
-The system generates digital audio by sending a rapid stream of amplitude values (samples) to a digital-to-analog converter (DAC) or the computer’s sound card.
-
-Standard Rate: We use 44.1 kHz (CD quality) for clear, smooth sound.
-
-Sample Depth: Each sample is 16-bit or 24-bit for good dynamic range.
-
- 2. Creating Tones
-This part describes how a musical note is generated mathematically, before it becomes digital samples.
-Sine Wave Synthesis:
-Each “note” (sound event) is produced as a simple sine wave, calculated by the formula:
-sample_value = volume × sin(2π × frequency × time)
-
-Envelope (Fade In/Out):
-To avoid harsh clicks at the start or end of a sound, each note fades in and out over a few milliseconds. This smooths the sound and prevents audio artifacts.
-
- 3. Mixing Multiple Notes
-Combining Sounds:
-Sometimes, more than one note is played at the same moment (for example, two heat spots in the same column).
-
-The system adds the waveforms together, sample by sample.
-
-To avoid audio “clipping” (too loud), volumes are managed so the sum stays within safe limits.
-
- 4. Stereo and Spatial Sound
-Stereo Panning:
-
-By default, both left and right speakers play the same sound.
-
- The system can “pan” the audio—making notes for the left side play louder in the left ear and vice versa. This creates a sense of the sound moving left-to-right as the system scans across the image, giving you intuitive spatial cues.
-
-5. Real-Time Playback
-Efficiency:
-
-The audio for each thermal frame is generated quickly and played back with low delay (ideally under a second).
-
-One buffer is played while the next is prepared (double-buffering) to keep everything smooth and responsive.
-
-
-
+1. **Pitch Calculation**: Temperature is mapped to a pentatonic scale for harmonious tones.
+2. **Sound Synthesis**: Each note is generated using a sine wave formula, modulated by temperature values.
+3. **Stereo Panning**: Audio is panned left-to-right based on the X-position of thermal features.
+4. **Real-Time Playback**: Audio is generated in real-time, ensuring immediate auditory feedback for the user.
 
 ---
 
-## Class-by-Class Code Walkthrough
+## Key Features
 
-### `ThermalSenseGUI/MAIN`
-- **Tkinter-based GUI** for user interaction.
-- **Key Methods:**  
-  - `__init__()`: Setup, widget placement, runner instantiation.
-  - `build_gui()`, `build_options_panel()`: Widget layout for modes/range selection.
-  - `on_mode_change()`: Switches between Default/Custom.
-  - `start_algorithm()`, `stop_all()`: Launch and halt the system.
-- **Features:**  
-  - Mode selection, real-time plot, mapping controls, status/error feedback, results folder access.
+* **Real-Time Thermal-to-Audio Conversion**
+  Continuously captures MLX90640 frames and immediately sonifies them into stereo “thermal soundscapes,” so you can literally hear heat patterns as they occur.
 
-### `ThermalSenseRunner` (orchestrator)
-- **Runs the acquisition → processing → sonification → output loop**.
-- **Key Methods:**  
-  - `__init__()`: Sets up references, configures output.
-  - `run()`: Main continuous processing loop.
-  - `stop()`: Graceful shutdown, resource cleanup.
-  - `play_audio()`, `log_results()`: Audio playback and data logging.
+* **Default vs. Custom Mode**
 
-### `ThermalSenseInput` 
-- **Hardware interface for the thermal sensor** (MLX90640).
-- **Key Methods:**  
-  - `__init__()`: Open sensor.
-  - `calculate_temperature()`: Capture frame, filter as needed.
-  - `update_display()`: Visualize current frame.
-  - `close()`: Release hardware.
+  * **Default Mode** auto-computes hot/cold thresholds (μ ± σ) for a zero-config quick start (custom UI disabled).
+  * **Custom Mode** lets you define up to 7 named temperature ranges, each with its own low/high bounds, display color (CSS name or hex RGB), and base tone frequency.
 
+* **Range Management UI**
 
----
+  * Add or remove up to 7 custom ranges
+  * Specify **Name**, **Low \[°C]**, **High \[°C]**, **Color** (text or RGB), **Frequency \[Hz]**
+  * “Validate Data” button enforces that low < high, color names are valid, and frequencies are non-negative before starting
 
-## Flow of Execution
+* **Comprehensive Logging & Saving**
 
-1. **Launch:**  
-   `main.py` creates the GUI and backend.
-2. **User Sets Parameters:**  
-   Via GUI: mode, mapping, scan speed, etc.
-3. **Start:**  
-   Begins processing loop in a background thread.
-4. **Continuous Loop:**  
-   Capture, preprocess, map, synthesize, output, and visualize/log each frame.
-5. **User Can Pause/Adjust:**  
-   Real-time interaction; immediate feedback.
-6. **Stop:**  
-   Releases resources and resets.
+  * **Enable/Disable**: image saving (PNG), CSV logging, frame capture, audio file output (WAV)
+  * Each run creates a timestamped folder under `Results/ThermalSense-<YYYY-MM-DD_HH-MM-SS>/`
+  * CSV output includes frame number, mean temperature, heat category, file paths, and hot/cold counts
 
----
+* **Real-Time Visualization Controls**
 
-## ThermalSense GUI: Features & Modes
+  * **Enable/Disable** live Matplotlib display
+  * Overlays show current hot/cold/total column counts on the thermal image
+  * Smooth fade-in/out transitions for splash and stop backgrounds
 
-- **Default Mode**  
-  - Automatically computes `hot_thr = μ + σ` and `cold_thr = μ – σ` on the very first frame.  
-  - Uses those fixed thresholds for all subsequent frames.  
-  - The custom-range panel is hidden and cannot be edited.
+* **Stereo Panning & Musical Mapping**
 
-- **Custom Mode**  
-  - Reveals a panel allowing you to define up to **7** named temperature ranges.  
-  - For each range you specify:  
-    - **Name** (e.g. “Hot Spot”)  
-    - **Low** and **High** temperature (in °C)  
-    - **Color** (CSS name or `#RRGGBB`)  
-    - **Sound Frequency** (base tone in Hz)  
-  - You can **Add** or **Delete** rows dynamically.  
-  - Press **Validate Data** before running to ensure:  
-    - Low < High  
-    - Valid color string or hex code  
-    - Frequency is an integer ≥ 0  
-  - Once validated, those ranges become the fixed thresholds for every frame.
+  * Scans left-to-right: horizontal position → time & stereo pan
+  * Vertical position quantized to a pentatonic scale for harmonious chords
+  * “Hot” ranges use a brass-like timbre, “Cold” ranges use a reed-like timbre, “Neutral” can be silent
 
----
+* **Modular, OOP Design**
 
-## User Controls
+  * **ThermalSenseGUI**: user interface & control panel
+  * **ThermalSenseRunner**: threaded orchestration of capture → process → output → log
+  * **ThermalSenseInput**: MLX90640 I²C handling & display update
+  * **ThermalSense** (in `Dependencies/ThermalSense`): core image cleaning, color mapping & soundscape synthesis
 
-In the options panel you can also toggle:
+* **Safe Threading & Shutdown**
 
-- **Enable Image Saving**  
-  Save each processed thermal frame as a PNG in `Results/.../thermal/`.
-
-- **Enable CSV Log**  
-  Record per-frame stats (mean temperature, hot/cold counts, filenames) in a timestamped CSV.
-
-- **Enable Frame Capture Save**  
-  Snapshot the Matplotlib figure of each frame to `Results/.../*.png`.
-
-- **Enable Sound File Save**  
-  Write every generated soundscape to a WAV in `Results/.../audio/` before playback.
-
-- **Enable Real-Time Visual Display**  
-  Show or hide the live thermal image plot in the GUI.
-
-- **Sample Rate**  
-  Control how many audio samples per second are used (default 44100 Hz).
-
-When **Default Mode** is selected, all custom-range controls are grayed out and ignored; conversely, in **Custom Mode** the automatic thresholds are disabled and your validated settings drive the entire pipeline.
-
+  * Start/Stop buttons launch or terminate the runner thread cleanly
+  * All resources (I²C bus, open files, Matplotlib figures) are released on exit
 
 ---
 
 ## Installation Guide
 
-**Requirements:** Raspberry Pi or Linux PC, Python 3.8+, MLX90640 sensor.
+### Requirements
 
+* **Raspberry Pi** or **Linux PC**
+* **Python 3.8+**
+* **MLX90640 Thermal Camera**
 
+### Steps to Install:
 
-To get started, follow these steps:
+1. Clone the repository:
 
+   ```bash
+   git clone https://github.com/NoraTanous/Thermal-Sense.git
+   cd Thermal-Sense
+   ```
 
+2. Create and activate a virtual environment:
 
-**1.Clone the Repository**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
+3. Install dependencies:
 
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-git clone https://github.com/NoraTanous/Thermal-Sense.git
+4. Enable I2C on Raspberry Pi:
 
-cd Thermal-Sense
+   ```bash
+   sudo raspi-config
+   ```
 
-
-
-**2.Create and Activate a Virtual Environment**
-
-
-
-python3 -m venv venv
-
-source venv/bin/activate
-
-
-
-**3.Upgrade pip**
-
-
-
-pip install --upgrade pip
-
-
-
-**4.Install System Dependencies**
-
-
-
-sudo apt-get update
-
-sudo apt-get install -y libportaudio2 libatlas-base-dev
-
-
-
-**5.Install Required Python Libraries**
-
-
-pip install numpy
-
-pip install matplotlib
-
-pip install opencv-python
-
-pip install sounddevice
-
-pip install scipy
-
-pip install adafruit-circuitpython-mlx90640
-
-pip install adafruit-blinka
-
-
-
-**6.Enable I2C Interface on Raspberry Pi**
-
-
-
-sudo raspi-config
-
-\# Go to Interfacing Options → I2C → Enable → Reboot when prompted
-
-
+---
 
 ## Running the System
 
+To start the system, run:
 
-
+```bash
 python main.py
+```
 
+This will launch the **ThermalSenseGUI**, where you can configure settings and begin the real-time thermal-to-audio mapping.
 
-
-**Saving and Logging**
-
-
-
-You can save the following outputs:
-
-
-
-Thermal Snapshots: Capture a frame of the thermal scene (CSV or PNG).
-
-
-
-Audio Recordings: Save the real-time generated audio as a .wav file.
-
-
-
-Data Logs: Log temperature readings over time in CSV or JSON format for analysis.
-
-
-
-All outputs are saved in a designated output/ folder with timestamped filenames.
-
-
-## Key Features 
-
-- **Real-Time Thermal-to-Audio Conversion**  
-  Continuously captures MLX90640 frames and immediately sonifies them into stereo “thermal soundscapes,” so you can literally _hear_ heat patterns as they occur.
-
-- **Default vs. Custom Mode**  
-  - **Default Mode** auto-computes hot/cold thresholds (μ ± σ) for a zero-config quick start (custom UI disabled).  
-  - **Custom Mode** lets you define up to **7** named temperature ranges, each with its own low/high bounds, display color (CSS name or hex RGB), and base tone frequency.
-
-- **Range Management UI**  
-  - Add or remove up to 7 custom ranges  
-  - Specify **Name**, **Low [°C]**, **High [°C]**, **Color** (text or RGB), **Frequency [Hz]**  
-  - “Validate Data” button enforces that low < high, color names are valid, and frequencies are non-negative before starting
-
-- **Comprehensive Logging & Saving**  
-  - **Enable/Disable**: image saving (PNG), CSV logging, frame capture, audio file output (WAV)  
-  - Each run creates a timestamped folder under `Results/ThermalSense-<YYYY-MM-DD_HH-MM-SS>/`  
-  - CSV output includes frame number, mean temperature, heat category, file paths, and hot/cold counts
-
-- **Real-Time Visualization Controls**  
-  - **Enable/Disable** live Matplotlib display  
-  - Overlays show current hot/cold/total column counts on the thermal image  
-  - Smooth fade-in/out transitions for splash and stop backgrounds
-
-- **Stereo Panning & Musical Mapping**  
-  - Scans left-to-right: horizontal position → time & stereo pan  
-  - Vertical position quantized to a pentatonic scale for harmonious chords  
-  - “Hot” ranges use a brass-like timbre, “Cold” ranges use a reed-like timbre, “Neutral” can be silent
-
-- **Modular, OOP Design**  
-  - **ThermalSenseGUI**: user interface & control panel  
-  - **ThermalSenseRunner**: threaded orchestration of capture → process → output → log  
-  - **ThermalSenseInput**: MLX90640 I²C handling & display update  
-  - **ThermalSense** (in `Dependencies/ThermalSense`): core image cleaning, color mapping & soundscape synthesis
-
-- **Safe Threading & Shutdown**  
-  - Start/Stop buttons launch or terminate the runner thread cleanly  
-  - All resources (I²C bus, open files, Matplotlib figures) are released on exit
-
-
+---
 
 ## Use Cases
 
+* **Assistive Technology**: Helping the visually impaired perceive temperature differences in their environment.
+* **Educational Tool**: Demonstrating how thermal imaging works and how humans perceive temperature.
+* **Research and Development**: Exploring sensory substitution, multisensory integration, and human-computer interaction.
 
+---
 
-ThermalSense Core can be applied in many creative and impactful ways:
+## Project Structure
 
-
-
-Assistive Technology: Allow people with visual impairments to "hear" heat sources and better navigate spaces.
-
-
-
-Home \& Maintenance: Identify overheating equipment, insulation failures, or air leaks hands-free.
-
-
-
-Education: Teach students about temperature, infrared sensing, and alternative perception systems.
-
-
-
-Research \& Development: Integrate into experimental setups, wearable devices, or even VR systems to explore sensory augmentation.
- 
-## Project Structure 
-
+```
 ThermalSense/
-├── __pycache__/                 # Python byte-code cache
-├── Backup/                      # (optional) previous versions or backups
+├── __pycache__/
+├── Backup/
 ├── Dependencies/
-│   └── ThermalSense/            # Core thermal→audio engine
-│       ├── __init__.py
-│       ├── object_thermal_sound.py   # ThermalSense class: image & sound processing
-│       └── …                     # any other helper modules
-├── Pictures/                    # GUI splash & icon images
+│   └── ThermalSense/
+├── Pictures/
 │   ├── Welcome.png
-│   ├── ThermalSenseResults.png
-│   └── StopBackground.png
-├── Results/                     # Runtime output (auto-created)
+│   └── ThermalSenseResults.png
+├── Results/
 │   └── ThermalSense-<timestamp>/
-│       ├── cleaned/             # cleaned grayscale frames
-│       ├── thermal/             # colorized thermal overlays
-│       ├── audio/               # WAV soundscapes
+│       ├── cleaned/
+│       ├── thermal/
+│       ├── audio/
 │       └── ThermalSense-<timestamp>.csv
-├── venv/                        # Python virtual-env (gitignored)
+├── venv/
 ├── .gitignore
 ├── LICENSE
-├── main.py                      # Launches ThermalSenseGUI
-├── ObjectThermalSenseRunner.py  # ThermalSenseRunner: orchestrates loop, I/O, logging
-├── README.md                    # This file
-├── ThermalSenseInput.py         # MLX90640 sensor interface & live display
-└── ThermalSense/                # (optional alias of Dependencies/ThermalSense)
+├── main.py
+├── ObjectThermalSenseRunner.py
+├── README.md
+├── ThermalSenseInput.py
+└── ThermalSense/
+```
+
+
+
+
