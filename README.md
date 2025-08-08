@@ -133,83 +133,106 @@ Modify settings at any time to adjust the ranges or toggles (sound, visualizatio
 
 ### Thermal-to-Auditory Mapping
 
-This code defines a class called ThermalSense.
-Its job is to take a thermal image (showing hot and cold spots), process it, and create:
-1.	A color-coded image (where different temperature ranges get different colors)
-2.	A “soundscape” (music-like audio, where different parts of the image play different notes)
-The main application is for sensory substitution, making heat and cold information accessible through sound.
-________________________________________
-Main Parts
-1. Initialization (__init__)
-•	Sets up parameters: audio sample rate, duration, where to save output, color and frequency ranges for hot/cold/neutral.
-•	Allows customization: You can pass your own temperature ranges, color, and frequency mappings.
-•	Prepares output folders if images will be saved.
-________________________________________
-2. Color Mapping
-generate_colored_thermal_image
-•	What it does: Converts the 2D temperature array into a 3-channel RGB image.
-•	How: For each pixel, checks which range (“Hot”, “Cold”, “Neutral”, or custom) it belongs to, and colors it accordingly (e.g., “hot” = red, “cold” = blue).
-•	Helper function: _color_to_rgb translates color names/hex codes into [R, G, B] arrays.
-________________________________________
-3. Image Processing
-process_image
-•	What it does: Main function called to process each thermal frame.
-•	Steps:
-1.	Loads and resizes the image to 50x30 pixels grayscale.
-2.	Removes non-thermal artifacts (e.g., reflections) using in-painting.
-3.	Flips the image (mirroring).
-4.	Creates a soundscape from the image.
-5.	Optionally saves images (cleaned and color-coded).
-6.	Returns the cleaned image and the generated sound.
-________________________________________
-4. Sound Generation – Turning Image Into Music
-create_soundscape
-•	What it does: Converts the processed thermal image into stereo audio (a “soundscape”).
-•	How it works:
-o	Goes column by column across the image (left to right).
-o	For each column:
-	Allocates a slice of time in the audio (like a “window” sweeping left-to-right).
-	For each row (vertical position) in that column:
-	Looks up the pixel’s temperature.
-	Decides if it’s “hot”, “cold”, or “neutral” (based on predefined or custom ranges).
-	If it’s “hot” or “cold”, calculates a pitch/frequency using _pitch_from_y, and then generates a short sound (like a musical note).
-	Different instruments (brass or reed) are used for “hot” or “cold” (for variety).
-	Combines (adds up) the notes for that column into the audio.
-	Stereo panning: Notes from the left part of the image play more in the left speaker, and right parts in the right speaker.
-o	Combines everything into a full audio “soundscape” for the whole image.
-________________________________________
+Here’s the organized section for your README file, detailing the **Algorithm Overview** and how the **Thermal-to-Auditory Mapping** works:
 
-5. Pentatonic Quantization (The Musical Mapping)
-_pitch_from_y and _quantize
-•	_pitch_from_y:
-o	Takes a row number (y) and maps it to a frequency.
-o	Bottom row → low frequency, top row → high frequency, all within a defined range.
-o	Calls _quantize to “snap” that frequency to the nearest pentatonic note.
-•	_quantize:
-o	Has a table of all pentatonic notes (using ratios over 4 octaves from A3 = 220 Hz).
-o	Finds the closest note to the frequency calculated by _pitch_from_y.
-o	Why? So even if image rows map to “in-between” values, you always get a proper pentatonic note (never a “clashing” frequency).
-o	Ratios used: [1.0, 1.125, 1.25, 1.5, 1.875] over four octaves.
-o	Result: All notes played at once will always sound harmonious (never dissonant).
-________________________________________
-6. Tone Generation
-•	_generate_reed_tone (for cold):
-Generates a sound that mimics a reed instrument, with slight vibrato.
-•	_generate_brass_tone (for hot):
-Generates a richer, “brassier” musical sound, with harmonics.
-________________________________________
-7. Other Helpers
-•	save_audio: Writes the final audio as a stereo WAV file.
-•	detect_hot_cold_regions: Counts how many columns contain at least one “hot” or “cold” pixel (used for basic analysis).
-________________________________________
+---
 
+## **Algorithm Overview**
 
-### Signal Generation
+### **Thermal-to-Auditory Mapping**
 
-1. **Pitch Calculation**: Temperature is mapped to a pentatonic scale for harmonious tones.
-2. **Sound Synthesis**: Each note is generated using a sine wave formula, modulated by temperature values.
-3. **Stereo Panning**: Audio is panned left-to-right based on the X-position of thermal features.
-4. **Real-Time Playback**: Audio is generated in real-time, ensuring immediate auditory feedback for the user.
+The **ThermalSense** system is designed to transform thermal images into auditory soundscapes, making heat and cold information accessible through sound . The system processes a thermal image to generate:
+
+1. **A color-coded image**, where different temperature ranges are mapped to specific colors.
+2. **A soundscape**, where different parts of the image correspond to musical notes, creating an auditory representation of thermal data.
+
+The primary application is for sensory substitution, allowing users to perceive temperature through sound
+
+---
+
+### **Main Parts**
+
+1. **Initialization (`__init__`)**
+
+   * **Purpose**: Set up essential parameters for the system.
+   * **Key Tasks**:
+
+     * Defines audio sample rate, sound duration, and output saving locations.
+     * Configures color and frequency ranges for temperature mapping (hot, cold, and neutral).
+     * Allows customization by passing temperature ranges, color mappings, and frequency configurations.
+     * Prepares output folders if images are to be saved.
+
+---
+
+ 
+---
+
+2. **Image Processing (`process_image`)**
+
+   * **Purpose**: The main function to process each thermal frame.
+   * **Steps**:
+
+     1. **Resizing**: The image is resized to 50x30 pixels for consistent processing and grayscale image generation for each thermal frame (image_acquisition). 
+     2. **Cleaning**: Non-thermal artifacts (e.g., sensor reflections) are removed using inpainting techniques(remove_non_thermal).
+     3. **Mirroring**: The image is flipped for correct orientation.
+     4. **mapping **: it generates the colored thermal image (`generate_colored_thermal_image`).
+        Convert the 2D temperature array into an RGB image, representing thermal data visually,Based on the temperature, the         pixel is assigned a specific color (e.g., **hot** = red, **cold** = blue).
+     6. **Soundscape Creation**: Generates a corresponding soundscape based on the processed image (create_soundscape).
+     7. **Saving**: Optionally saves the cleaned and color-coded images .
+     8. **Return**: Outputs both the cleaned image and the generated sound.
+     
+  
+---
+
+3. **Sound Generation – Turning Image Into Music (`create_soundscape`)**
+
+   * **Purpose**: Converts the processed thermal image into a stereo audio "soundscape".
+   * **How It Works**:
+
+     * The system scans the image column by column, from left to right.
+     * For each row (vertical position), the pixel’s temperature determines its pitch, using `_pitch_from_y` to calculate the frequency.
+     * The sound is then mapped to different musical tones based on whether the temperature is hot, cold, or neutral.
+     * **Hot regions** use a brass-like tone, **cold regions** use a reed-like tone, and **neutral regions** are silent or based what the user entered in custom mode.
+     * **Stereo Panning**: The left part of the image is panned more to the left speaker, and the right part is panned more to the right speaker.
+     * **Full Audio**: After processing all columns, the entire soundscape is combined into one complete audio file.
+
+---
+
+4. **Pentatonic Quantization (The Musical Mapping)**
+
+   * **Purpose**: Ensure harmonious sound by quantizing pitches to a pentatonic scale.
+   * **Functions**:
+
+     * **\_pitch\_from\_y**: Maps the row number to a specific frequency based on its vertical position in the image. Higher rows correspond to higher frequencies, and lower rows correspond to lower frequencies.
+     * **\_quantize**: Takes the calculated frequency and snaps it to the nearest **pentatonic note** using a precomputed table of ratios ([1.0, 1.125, 1.25, 1.5, 1.875]) across four octaves (starting from A3 = 220 Hz).
+   * **Result**: Ensures that all notes, even when played simultaneously, sound harmonious without clashing frequencies.
+
+---
+
+5. **Tone Generation**
+
+   * **Purpose**: Generate distinct tones for cold and hot regions.
+   * **Cold Tone** (`_generate_reed_tone`): Creates a reed-like sound with slight vibrato for cold regions.
+   * **Hot Tone** (`_generate_brass_tone`): Generates a richer, brass-like sound for hot regions, emphasizing harmonics.
+
+---
+
+6. **Other Helper Functions**
+
+   * **save\_audio**: Saves the final soundscape as a **stereo WAV file**.
+   * **detect\_hot\_cold\_regions**: Identifies how many columns contain at least one "hot" or "cold" pixel, useful for analysis.
+
+---
+
+### **Signal Generation**
+
+1. **Pitch Calculation**: Map each temperature reading to the nearest note in a five-note pentatonic scale, so every tone you hear is guaranteed to fit together musically.
+2. **Sound Synthesis**: Generate each note as a simple sine wave—its frequency set by the pitch and its loudness (amplitude) scaled by how extreme the temperature is.
+3. **Stereo Panning**: The sound is panned from left to right, corresponding to the X-position of thermal features in the image.
+4. **Real-Time Playback**: Audio is generated and played back in real-time, ensuring immediate auditory feedback for the user.
+
+---
+
 
 ---
 
