@@ -1,11 +1,12 @@
 
 # ThermalSense – Real-Time Thermal-to-Audio Perception System
 
-**ThermalSense** is a sensory substitution system designed to translate thermal camera data into sound, enabling users to "hear" temperature differences in their surroundings. This system is particularly useful for the visually impaired, educational purposes, or research applications in human-computer interaction.
+**ThermalSense** is a sensory substitution system designed to translate thermal camera data into sound, enabling users to "hear" temperature differences in their surroundings. This system is particularly useful for  research applications in human-computer interaction.
 
 The system works by mapping the temperature values captured by infrared sensors (like the MLX90640) to audio cues, providing real-time auditory feedback. Hotter regions correspond to higher-pitched sounds, while cooler areas are represented with lower tones.
 
-This README serves as a comprehensive guide to the **ThermalSense Core System**, detailing the system's architecture, algorithms, and implementation steps based on the principles outlined in the related paper **"ThermalSense: A Sensory Substitution System for Enabling Perception of Thermal Information"** (link to paper).
+This README serves as a comprehensive guide to the **ThermalSense Core System**, detailing the system's architecture, algorithms, and implementation steps based on the principles outlined in the related paper **"ThermalSense: A Sensory Substitution System for Enabling Perception of Thermal Information"** https://drive.google.com/file/d/1dFGBmDBlz_y5wf21syICkZNWN9OCk4tf/view?usp=drive_link
+
 
 ---
 
@@ -32,7 +33,7 @@ This README serves as a comprehensive guide to the **ThermalSense Core System**,
 
 **ThermalSense** extends human sensory capabilities by converting thermal information into auditory cues. Inspired by visual-to-auditory systems like *EyeMusic*, it leverages the *EyeMusic* algorithm to create soundscapes from thermal data. Users can perceive temperature variations and localize heat sources through sound.
 
-This system has applications in:
+This system can  have applications in:
 
 * **Assistive Technology**: Enabling visually impaired users to "hear" heat sources.
 * **Education**: Teaching about thermal imaging and perception.
@@ -44,28 +45,31 @@ This system has applications in:
 
 The system is composed of four main classes, each handling a distinct part of the process:
 
-* **ThermalSenseGUI**: The main user interface for setting parameters and controlling the system.
-* **ThermalSenseRunner**: The orchestrator, managing data acquisition, processing, and output.
+* **ThermalSenseGUI/MAIN**: The main user interface for setting parameters and controlling the system.
+* **ObjectThermalSenseRunner**: The orchestrator, managing data acquisition, processing, and output.
 * **ThermalSenseInput**: The interface for reading data from the MLX90640 thermal camera.
 * **ThermalSense**: The core class for processing thermal images, generating the audio output, and saving results.
 
 ### Class Structure
 
-* **ThermalSenseGUI**:
+* **Main/ThermalSenseGUI**:
 
-  * Responsible for displaying the GUI, gathering user input (e.g., custom temperature ranges), and starting or stopping the system.
+  * Responsible for displaying the GUI, gathering user input (e.g., custom temperature ranges), and starting or stopping the system, when you hit Run, it launches a ObjectThermalSenseRunner in the background
 
-* **ThermalSenseRunner**:
+* **ObjectThermalSenseRunner**:
 
-  * Coordinates real-time cycles of acquiring, processing, and outputting thermal data. It interacts with both `ThermalSenseInput` and `ThermalSense`.
+  * Coordinates real-time cycles of acquiring, processing, and outputting thermal data. It interacts with both `ThermalSenseInput` and `ThermalSense`,In a tight loop it: Grabs frames from the camera via ThermalSenseInput
+Hands each frame to ThermalSense for cleaning, color‐mapping, and sonification
+Plays back the generated audio, updates the GUI plot, and writes logs/files.
+
 
 * **ThermalSenseInput**:
 
-  * Handles the I²C connection with the MLX90640 sensor, reading temperature data in real-time.
+  * Handles the I2C connection with the MLX90640 sensor, reading temperature data in real-time.
 
 * **ThermalSense**:
 
-  * Processes the thermal data, cleans it, maps temperature ranges to sound, and generates audio cues.
+  * provides all the thermal image processing - resizing , cleaning, gray scale , mapping to color , and the core soundscape generation .
 
 ---
 
@@ -74,9 +78,9 @@ The system is composed of four main classes, each handling a distinct part of th
 ### 1. **ThermalSenseInput – Frame Acquisition**
 
 * Initializes I²C connection with the MLX90640 sensor.
-* Captures a thermal frame (768 values) representing temperature data.
+* Captures a thermal frame  representing temperature data.
 
-### 2. **ThermalSenseRunner – Frame Handling**
+### 2. **ObjectThermalSenseRunner – Frame Handling**
 
 * Acquires each new thermal frame.
 * Reshapes the data for processing, updating the frame at a set sample rate.
@@ -87,7 +91,7 @@ The system is composed of four main classes, each handling a distinct part of th
 * A heatmap is generated, mapping temperature ranges to specific sound frequencies.
 * The audio cues are generated based on the vertical position (pitch) and temperature (volume/timbre).
 
-### 4. **ThermalSenseRunner – Output and Feedback**
+### 4. **ObjectThermalSenseRunner – Output and Feedback**
 
 * Saves images and audio files to a result directory.
 * Logs statistics (e.g., temperature, location of heat sources).
@@ -95,8 +99,33 @@ The system is composed of four main classes, each handling a distinct part of th
 
 ### 5. **ThermalSenseGUI – User Control**
 
-* The GUI allows the user to adjust settings such as mode (default or custom ranges), logging options, and visualization display.
-* Users can start, stop, or modify the operation at any time.
+User Interface: The ThermalSenseGUI provides a control panel where users can:
+
+Choose Custom Mode: Users can define up to 7 custom temperature ranges, each with its own temperature thresholds, frequency, and color.
+
+Enable/Disable Sound: Users can choose whether they want to hear the generated sounds.
+Enable/Disable Real-Time Visualization: Users can toggle live visual updates on the GUI (using Matplotlib).
+Enable/Disable Logging: Users can choose to log  CSV file.
+Enable/Disable Logging: Users can choose to frame sound save .
+Enable/Disable Logging: Users can choose to frame capture saving .
+
+Default Mode: In this mode, the temperature ranges are pre-configured, and users do not need to adjust settings. The ranges are:
+
+Cold (0-20°C): Blue, 200 Hz, Reed sound.
+
+Neutral (21-29°C): Black,0 Hz, silent.
+
+Hot (30-70°C): Red, 500 Hz, Brass sound.
+
+Control Buttons: Users can:
+
+Start the operation (initiate the real-time processing loop).
+
+Stop the operation (halt the loop ).
+
+Exit the operation 
+
+Modify settings at any time to adjust the ranges or toggles (sound, visualization, etc.).
 
 ---
 
@@ -104,9 +133,76 @@ The system is composed of four main classes, each handling a distinct part of th
 
 ### Thermal-to-Auditory Mapping
 
-* **Vertical Position** (Y-axis): Mapped to pitch, with higher positions (hotter regions) corresponding to higher notes.
-* **Horizontal Position** (X-axis): Determines the timing and stereo panning of the audio.
-* **Temperature Mapping**: Divides temperature ranges into categories (e.g., cold, neutral, hot) and maps them to specific instruments or sounds.
+This code defines a class called ThermalSense.
+Its job is to take a thermal image (showing hot and cold spots), process it, and create:
+1.	A color-coded image (where different temperature ranges get different colors)
+2.	A “soundscape” (music-like audio, where different parts of the image play different notes)
+The main application is for sensory substitution, making heat and cold information accessible through sound.
+________________________________________
+Main Parts
+1. Initialization (__init__)
+•	Sets up parameters: audio sample rate, duration, where to save output, color and frequency ranges for hot/cold/neutral.
+•	Allows customization: You can pass your own temperature ranges, color, and frequency mappings.
+•	Prepares output folders if images will be saved.
+________________________________________
+2. Color Mapping
+generate_colored_thermal_image
+•	What it does: Converts the 2D temperature array into a 3-channel RGB image.
+•	How: For each pixel, checks which range (“Hot”, “Cold”, “Neutral”, or custom) it belongs to, and colors it accordingly (e.g., “hot” = red, “cold” = blue).
+•	Helper function: _color_to_rgb translates color names/hex codes into [R, G, B] arrays.
+________________________________________
+3. Image Processing
+process_image
+•	What it does: Main function called to process each thermal frame.
+•	Steps:
+1.	Loads and resizes the image to 50x30 pixels grayscale.
+2.	Removes non-thermal artifacts (e.g., reflections) using in-painting.
+3.	Flips the image (mirroring).
+4.	Creates a soundscape from the image.
+5.	Optionally saves images (cleaned and color-coded).
+6.	Returns the cleaned image and the generated sound.
+________________________________________
+4. Sound Generation – Turning Image Into Music
+create_soundscape
+•	What it does: Converts the processed thermal image into stereo audio (a “soundscape”).
+•	How it works:
+o	Goes column by column across the image (left to right).
+o	For each column:
+	Allocates a slice of time in the audio (like a “window” sweeping left-to-right).
+	For each row (vertical position) in that column:
+	Looks up the pixel’s temperature.
+	Decides if it’s “hot”, “cold”, or “neutral” (based on predefined or custom ranges).
+	If it’s “hot” or “cold”, calculates a pitch/frequency using _pitch_from_y, and then generates a short sound (like a musical note).
+	Different instruments (brass or reed) are used for “hot” or “cold” (for variety).
+	Combines (adds up) the notes for that column into the audio.
+	Stereo panning: Notes from the left part of the image play more in the left speaker, and right parts in the right speaker.
+o	Combines everything into a full audio “soundscape” for the whole image.
+________________________________________
+
+5. Pentatonic Quantization (The Musical Mapping)
+_pitch_from_y and _quantize
+•	_pitch_from_y:
+o	Takes a row number (y) and maps it to a frequency.
+o	Bottom row → low frequency, top row → high frequency, all within a defined range.
+o	Calls _quantize to “snap” that frequency to the nearest pentatonic note.
+•	_quantize:
+o	Has a table of all pentatonic notes (using ratios over 4 octaves from A3 = 220 Hz).
+o	Finds the closest note to the frequency calculated by _pitch_from_y.
+o	Why? So even if image rows map to “in-between” values, you always get a proper pentatonic note (never a “clashing” frequency).
+o	Ratios used: [1.0, 1.125, 1.25, 1.5, 1.875] over four octaves.
+o	Result: All notes played at once will always sound harmonious (never dissonant).
+________________________________________
+6. Tone Generation
+•	_generate_reed_tone (for cold):
+Generates a sound that mimics a reed instrument, with slight vibrato.
+•	_generate_brass_tone (for hot):
+Generates a richer, “brassier” musical sound, with harmonics.
+________________________________________
+7. Other Helpers
+•	save_audio: Writes the final audio as a stereo WAV file.
+•	detect_hot_cold_regions: Counts how many columns contain at least one “hot” or “cold” pixel (used for basic analysis).
+________________________________________
+
 
 ### Signal Generation
 
